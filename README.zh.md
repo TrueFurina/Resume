@@ -1,0 +1,139 @@
+# 物理学科智能排课选课智能体系统
+
+> 面向高校物理实验教学的智能辅助系统：排课、选课咨询、调课、实验辅导四大模块。
+
+[English README](README.md)
+
+---
+
+## 项目简介
+
+面向大学物理实验教学场景的**四大模块智能体系统**：
+
+| 模块 | 能力 |
+|------|------|
+| 📅 **排课** | 约束求解自动排课、冲突检测、候选方案推荐 |
+| 🎓 **选课咨询** | AI 回答先修课、学分、选课资格问题 |
+| 🔄 **调课** | 模板 + 自然语言双入口，冲突筛选，管理员审批 |
+| 🔬 **实验辅导** | AI 回答实验原理、数据处理、误差分析、报告规范 |
+
+**设计原则**：规则引擎保证排课正确（冲突筛选），LLM 增强体验（意图解析、候选方案、咨询问答）。
+
+## 为什么做这个项目
+
+- 论文调研表明：实验课很少进入高校排课系统，排课依赖人工协调
+- 一处调整可能引发多班、多教师、多实验室的连锁冲突
+- 现有工具（Excel、问学委）无法高效解决跨班跨教师冲突
+
+## 技术栈
+
+| 层 | 技术 |
+|----|------|
+| 后端 | Python FastAPI + openpyxl + python-constraint |
+| 前端 | React + Vite + TypeScript + Tailwind CSS |
+| LLM | 律动基元（OpenAI 兼容，环境变量可替换） |
+| 数据 | 实验安排表（433条）+ 学生课表 |
+
+## 快速启动
+
+### 环境要求
+
+- Python 3.10+
+- Node.js 18+
+- 环境变量：`JIYUAN_LVDONG_BASE_URL`、`JIYUAN_LVDONG_API_KEY`（LLM 凭据）
+
+### 后端
+
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+### 前端
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+打开 **http://localhost:5173**
+
+## 使用流程
+
+1. **选择身份**——点击教师卡片（系统知道用户是谁）
+2. **我的课程**——查看全部课程，标注可调/不可调
+3. **模板调课**——选课程 + 目标周次，自动冲突筛选
+4. **结果**——绿色可用时段 + 灰色被排除时段（附原因）+ AI 候选方案
+5. **提交**——生成调课申请
+6. **管理员审批**——同意/驳回（需管理员登录）
+7. **选课咨询 / 实验辅导**——带知识源的 AI 问答
+
+## 核心功能
+
+- ✅ **三重冲突筛选**：教室占用 / 学生课表 / 教师时间
+- ✅ **原因透传**：每个被排除时段说明原因
+- ✅ **自然语言调课**："我是吴琳，第六周的课上不了，调到下周"
+- ✅ **多轮追问**：信息缺失时系统主动补全
+- ✅ **SQLite 持久化**：调课申请重启不丢
+- ✅ **13 个单元测试**覆盖排课逻辑
+
+## 项目结构
+
+```
+physics-scheduler-agent/
+├── backend/
+│   ├── app/
+│   │   ├── main.py                 # FastAPI 入口
+│   │   ├── api/reschedule.py       # API 端点
+│   │   ├── agent/                  # 调课智能体、LLM 解析、学生课表
+│   │   ├── engine/                 # 约束求解自动排课
+│   │   └── utils/                  # Excel/PDF 解析器
+│   ├── tests/test_reschedule.py    # pytest 单元测试
+│   └── requirements.txt
+├── frontend/
+│   └── src/                        # React 界面（四大模块）
+├── scripts/prepare_demo.py         # 演示数据一键准备
+├── docs/                           # PRD、架构、使用指南、总结反思
+└── start.ps1 / start.bat           # 一键启动
+```
+
+## API 一览
+
+| 方法 | 路径 | 模块 | 说明 |
+|------|------|------|------|
+| POST | `/api/reschedule/upload` | 排课 | 上传实验安排表 |
+| GET | `/api/reschedule/teachers` | 排课 | 教师列表（身份选择） |
+| GET | `/api/reschedule/teachers/{name}/courses` | 排课 | 教师课程 |
+| POST | `/api/reschedule/auto-schedule` | 排课 | 自动排课 |
+| POST | `/api/reschedule/chat` | 调课 | 调课查询（可用+被排除+AI方案） |
+| POST | `/api/reschedule/requests` | 调课 | 提交调课申请 |
+| POST | `/api/reschedule/requests/{id}/approve` | 调课 | 管理员审批 |
+| POST | `/api/reschedule/admin-login` | 认证 | 管理员登录 |
+| POST | `/api/reschedule/course-select` | 选课 | 选课咨询（LLM） |
+| POST | `/api/reschedule/experiment-tutor` | 辅导 | 实验辅导（LLM） |
+| GET | `/health` | - | 健康检查 |
+
+## 测试
+
+```bash
+cd backend
+python -m pytest tests/ -v
+```
+
+## 后续规划
+
+- [ ] 冲突影响分析（"这一改会影响谁"）
+- [ ] 排课结果可视化（周课表网格）
+- [ ] 数据上传向导（字段映射，适配不同学校）
+- [ ] 多校数据隔离
+- [ ] 实验讲义 RAG 知识库
+
+## 文档
+
+- [English README](README.md)
+- [PRD V1.0](docs/PRD-V1.0.md)
+- [技术架构设计文档 V1.0](docs/技术架构设计文档-V1.0.md)
+- [产品使用指南](docs/产品使用指南.md)
+- [项目总结与反思](docs/项目总结与反思.md)
